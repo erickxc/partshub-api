@@ -28,10 +28,14 @@ export default async function handler(req: any, res: any) {
   }
   if (req.url === '/api/debug-init') {
     try {
-      await getApp();
-      return res.end(JSON.stringify({ ok: true }));
+      const { PrismaClient } = require('@prisma/client');
+      const pc = new PrismaClient();
+      await pc.$connect();
+      const count = await pc.user.count();
+      await pc.$disconnect();
+      return res.end(JSON.stringify({ ok: true, users: count }));
     } catch (err: any) {
-      return res.end(JSON.stringify({ error: err?.message, stack: err?.stack?.substring(0, 500) }));
+      return res.end(JSON.stringify({ error: err?.message?.substring(0, 300) }));
     }
   }
   try {
