@@ -17,7 +17,12 @@ async function getApp() {
 }
 
 export default async function handler(req: any, res: any) {
-  const nestApp = await getApp();
-  const expressApp = nestApp.getHttpAdapter().getInstance();
-  return expressApp(req, res);
+  try {
+    const nestApp = await getApp();
+    const expressApp = nestApp.getHttpAdapter().getInstance();
+    return expressApp(req, res);
+  } catch (err: any) {
+    console.error('Handler error:', err?.message, err?.stack);
+    res.status(500).json({ error: err?.message ?? 'Unknown error', stack: err?.stack });
+  }
 }
