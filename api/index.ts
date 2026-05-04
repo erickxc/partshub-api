@@ -20,12 +20,22 @@ async function getApp() {
 }
 
 export default async function handler(req: any, res: any) {
+  if (req.url === '/api/debug-env') {
+    const dbUrl = process.env.DATABASE_URL ?? 'MISSING';
+    return res.end(JSON.stringify({
+      db: dbUrl.substring(0, 50),
+      dbLen: dbUrl.length,
+      node: process.env.NODE_ENV,
+      jwt: !!process.env.JWT_SECRET,
+    }));
+  }
   try {
     const nestApp = await getApp();
     const expressApp = nestApp.getHttpAdapter().getInstance();
     return expressApp(req, res);
   } catch (err: any) {
     console.error('Handler error:', err?.message, err?.stack);
-    res.status(500).json({ error: err?.message ?? 'Unknown error', stack: err?.stack });
+    res.statusCode = 500;
+    res.end(JSON.stringify({ error: err?.message ?? 'Unknown error' }));
   }
 }
