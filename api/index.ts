@@ -1,17 +1,15 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from '../src/app.module';
-import { AllExceptionsFilter } from '../src/common/filters/all-exceptions.filter';
 import type { INestApplication } from '@nestjs/common';
 
 let app: INestApplication;
 
 async function getApp() {
   if (!app) {
-    app = await NestFactory.create(AppModule, { logger: ['error', 'warn', 'log'] });
+    app = await NestFactory.create(AppModule, { logger: false });
     app.enableCors({ origin: '*' });
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-    app.useGlobalFilters(new AllExceptionsFilter());
     app.setGlobalPrefix('api');
     await app.init();
   }
@@ -19,34 +17,12 @@ async function getApp() {
 }
 
 export default async function handler(req: any, res: any) {
-  if (req.url === '/api/debug-env') {
-    const dbUrl = process.env.DATABASE_URL ?? 'MISSING';
-    return res.end(JSON.stringify({
-      db: dbUrl.substring(0, 50),
-      dbLen: dbUrl.length,
-      node: process.env.NODE_ENV,
-      jwt: !!process.env.JWT_SECRET,
-    }));
-  }
-  if (req.url === '/api/debug-init') {
-    try {
-      const { PrismaClient } = require('@prisma/client');
-      const pc = new PrismaClient();
-      await pc.$connect();
-      const count = await pc.user.count();
-      await pc.$disconnect();
-      return res.end(JSON.stringify({ ok: true, users: count }));
-    } catch (err: any) {
-      return res.end(JSON.stringify({ error: err?.message?.substring(0, 300) }));
-    }
-  }
   try {
     const nestApp = await getApp();
     const expressApp = nestApp.getHttpAdapter().getInstance();
     return expressApp(req, res);
   } catch (err: any) {
-    console.error('Handler error:', err?.message, err?.stack);
     res.statusCode = 500;
-    res.end(JSON.stringify({ error: err?.message ?? 'Unknown error' }));
+    res.end(JSON.stringify({ statusCode: 500, message: 'Internal server error' }));
   }
 }
