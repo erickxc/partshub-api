@@ -7,14 +7,11 @@ let app: INestApplication;
 
 async function getApp() {
   if (!app) {
-    const dbUrl = process.env.DATABASE_URL ?? 'MISSING';
-    console.log('DB_URL_PREFIX:', dbUrl.substring(0, 30), '| length:', dbUrl.length);
     app = await NestFactory.create(AppModule, { logger: ['error', 'warn', 'log'] });
     app.enableCors({ origin: '*' });
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     app.setGlobalPrefix('api');
     await app.init();
-    console.log('NestJS initialized OK');
   }
   return app;
 }
@@ -28,6 +25,14 @@ export default async function handler(req: any, res: any) {
       node: process.env.NODE_ENV,
       jwt: !!process.env.JWT_SECRET,
     }));
+  }
+  if (req.url === '/api/debug-init') {
+    try {
+      await getApp();
+      return res.end(JSON.stringify({ ok: true }));
+    } catch (err: any) {
+      return res.end(JSON.stringify({ error: err?.message, stack: err?.stack?.substring(0, 500) }));
+    }
   }
   try {
     const nestApp = await getApp();
