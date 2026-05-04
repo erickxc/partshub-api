@@ -1,4 +1,4 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
 
@@ -6,14 +6,15 @@ import * as bcrypt from 'bcryptjs';
 export class TenantsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(name: string, slug: string, adminEmail: string, adminPassword: string, adminName: string) {
+  async create(name: string, slug: string, adminEmail: string, adminPassword: string, adminName: string, plan = 'starter') {
     const exists = await this.prisma.tenant.findUnique({ where: { slug } });
     if (exists) throw new ConflictException('Slug já em uso');
 
-    const tenant = await this.prisma.tenant.create({
+    return this.prisma.tenant.create({
       data: {
         name,
         slug,
+        plan,
         users: {
           create: {
             email: adminEmail,
@@ -24,11 +25,18 @@ export class TenantsService {
         },
       },
     });
-
-    return tenant;
   }
 
   findAll() {
-    return this.prisma.tenant.findMany({ orderBy: { createdAt: 'desc' } });
+    return this.prisma.tenant.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: { _count: { select: { users: true } } },
+    });
+  }
+
+  async update(id: string, data: { name?: string; plan?: string; active?: boolean }) {
+    const tenant = await this.prisma.tenant.findUnique({ where: { id } });
+    if (!tenant) throw new NotFoundException('Tenant não encontrado');
+    return this.prisma.tenant.update({ where: { id }, data });
   }
 }
