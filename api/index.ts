@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from '../src/app.module';
+import { AllExceptionsFilter } from '../src/common/filters/all-exceptions.filter';
 import type { INestApplication } from '@nestjs/common';
 
 let app: INestApplication;
@@ -10,6 +11,7 @@ async function getApp() {
     app = await NestFactory.create(AppModule, { logger: ['error', 'warn', 'log'] });
     app.enableCors({ origin: '*' });
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalFilters(new AllExceptionsFilter());
     app.setGlobalPrefix('api');
     await app.init();
   }
