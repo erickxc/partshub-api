@@ -7,11 +7,14 @@ let app: INestApplication;
 
 async function getApp() {
   if (!app) {
-    app = await NestFactory.create(AppModule, { logger: false });
+    const dbUrl = process.env.DATABASE_URL ?? 'MISSING';
+    console.log('DB_URL_PREFIX:', dbUrl.substring(0, 30), '| length:', dbUrl.length);
+    app = await NestFactory.create(AppModule, { logger: ['error', 'warn', 'log'] });
     app.enableCors({ origin: '*' });
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     app.setGlobalPrefix('api');
     await app.init();
+    console.log('NestJS initialized OK');
   }
   return app;
 }
